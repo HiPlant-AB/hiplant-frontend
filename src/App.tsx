@@ -1,19 +1,21 @@
 import { useState } from "react";
-import {
-  Link,
-  Navigate,
-  Route,
-  Routes,
-} from "react-router-dom";
 import { isMockAuthEnabled } from "./auth/mockAuth";
 import { useAuth } from "./auth/useAuth";
-import { AccessDeniedPage } from "./pages/AccessDeniedPage";
-import { HomePage } from "./pages/HomePage";
-import { OnboardingPage } from "./pages/OnboardingPage";
+import { CurrentUserPanel } from "./components/CurrentUserPanel";
+import { NavLink } from "react-router-dom";
+import { useCurrentUser } from "./api/useCurrentUser";
+import { AppRoutes } from "./components/AppRoutes";
+import { BrandLogo } from "./components/BrandLogo";
 import "./App.css";
 
 function App() {
   const { isAuthenticated, account, signIn, signOut, getAccessToken } = useAuth();
+  const {
+    currentUser,
+    isLoading: isCurrentUserLoading,
+    error: currentUserError,
+    reload: reloadCurrentUser,
+  } = useCurrentUser();
   const [tokenStatus, setTokenStatus] = useState<string | null>(null);
 
   async function handleAcquireToken() {
@@ -34,7 +36,7 @@ function App() {
     return (
       <main className="app-shell">
         <section className="auth-card">
-          <h1>HiPlant</h1>
+          <BrandLogo />
 
           {isMockAuthEnabled() && (
             <div className="mock-auth-banner">
@@ -56,7 +58,7 @@ function App() {
     <main className="app-layout">
       <header className="app-header">
         <div>
-          <h1>HiPlant</h1>
+          <BrandLogo />
           <p>
             Signed in as <strong>{account?.name ?? account?.username ?? "Unknown"}</strong>
           </p>
@@ -74,47 +76,80 @@ function App() {
       )}
 
       <nav className="app-nav" aria-label="Main navigation">
-        <Link to="/">Home</Link>
-        <Link to="/onboarding">Onboarding</Link>
-        <Link to="/access-denied">Access denied</Link>
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) => (isActive ? "active" : undefined)}
+        >
+          Home
+        </NavLink>
+
+        <NavLink
+          to="/onboarding"
+          className={({ isActive }) => (isActive ? "active" : undefined)}
+        >
+          Onboarding
+        </NavLink>
+
+        <NavLink
+          to="/access-denied"
+          className={({ isActive }) => (isActive ? "active" : undefined)}
+        >
+          Access denied
+        </NavLink>
       </nav>
 
-      <section className="account-panel">
-        <h2>Current account</h2>
-
-        <dl className="user-details">
-          <dt>Name</dt>
-          <dd>{account?.name ?? "Unknown"}</dd>
-
-          <dt>Username</dt>
-          <dd>{account?.username ?? "Unknown"}</dd>
-
-          <dt>Tenant ID</dt>
-          <dd>{account?.tenantId ?? "Unknown"}</dd>
-
-          <dt>Local account ID</dt>
-          <dd>{account?.localAccountId ?? "Unknown"}</dd>
-
-          <dt>Roles</dt>
-          <dd>{account?.roles?.join(", ") || "None"}</dd>
-        </dl>
-
-        <button type="button" onClick={handleAcquireToken}>
-          Acquire API token
-        </button>
-
-        {tokenStatus && <p className="status-message">{tokenStatus}</p>}
-      </section>
-
       <section className="content-card">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/access-denied" element={<AccessDeniedPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        {isCurrentUserLoading && <p>Loading application user...</p>}
+
+        {currentUserError && (
+          <p className="error-message">
+            Could not load application user. Routing decisions are paused.
+          </p>
+        )}
+
+        {!isCurrentUserLoading && !currentUserError && (
+          <AppRoutes currentUser={currentUser} />
+        )}
       </section>
-    </main>
+
+      <section className="debug-panels">
+        <section className="account-panel">
+          <h2>Current account</h2>
+
+          <dl className="user-details">
+            <dt>Name</dt>
+            <dd>{account?.name ?? "Unknown"}</dd>
+
+            <dt>Username</dt>
+            <dd>{account?.username ?? "Unknown"}</dd>
+
+            <dt>Tenant ID</dt>
+            <dd>{account?.tenantId ?? "Unknown"}</dd>
+
+            <dt>Local account ID</dt>
+            <dd>{account?.localAccountId ?? "Unknown"}</dd>
+
+            <dt>Roles</dt>
+            <dd>{account?.roles?.join(", ") || "None"}</dd>
+          </dl>
+
+          <button type="button" onClick={handleAcquireToken}>
+            Acquire API token
+          </button>
+
+          {tokenStatus && <p className="status-message">{tokenStatus}</p>}
+        </section>
+
+        <CurrentUserPanel
+          currentUser={currentUser}
+          isLoading={isCurrentUserLoading}
+          error={currentUserError}
+          onReload={reloadCurrentUser}
+        />
+      </section>
+
+    </main >
   );
 }
 
