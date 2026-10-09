@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { completeOnboarding } from "../api/onboardingApi";
 import { useAuth } from "../auth/useAuth";
 
 const plantCareInterests = [
@@ -10,17 +12,50 @@ const plantCareInterests = [
   "Plant identification",
 ];
 
-export function OnboardingPage() {
-  const { account } = useAuth();
+type OnboardingPageProps = {
+  onCompleted?: () => Promise<void>;
+};
+
+export function OnboardingPage({ onCompleted }: OnboardingPageProps) {
+  const { account, getAccessToken } = useAuth();
+  const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState(account?.name ?? "");
   const [team, setTeam] = useState("");
   const [interest, setInterest] = useState(plantCareInterests[0]);
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const accessToken = await getAccessToken();
+
+      await completeOnboarding(accessToken, {
+        displayName,
+        email: account?.username ?? "",
+        team,
+        plantCareInterest: interest,
+      });
+
+      await onCompleted?.();
+
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error(error);
+
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to complete onboarding."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -51,6 +86,7 @@ export function OnboardingPage() {
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               placeholder="Your name"
+              required
             />
           </label>
 
@@ -84,17 +120,18 @@ export function OnboardingPage() {
         </div>
 
         <div className="onboarding-actions">
-          <button type="submit">Complete onboarding</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Completing..." : "Complete onboarding"}
+          </button>
 
           <p>
-            Later this will call <code>POST /api/onboarding/complete</code>.
+            Calls <code>POST /api/onboarding/complete</code>.
           </p>
         </div>
 
-        {submitted && (
-          <div className="success-message" role="status">
-            Looks good. Onboarding would now be completed for{" "}
-            <strong>{displayName || account?.username}</strong>.
+        {submitError && (
+          <div className="error-message" role="alert">
+            {submitError}
           </div>
         )}
       </form>

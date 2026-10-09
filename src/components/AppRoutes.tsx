@@ -6,9 +6,13 @@ import { OnboardingPage } from "../pages/OnboardingPage";
 
 type AppRoutesProps = {
   currentUser: CurrentUser | null;
+  onOnboardingCompleted: () => Promise<void>;
 };
 
-export function AppRoutes({ currentUser }: AppRoutesProps) {
+export function AppRoutes({
+  currentUser,
+  onOnboardingCompleted,
+}: AppRoutesProps) {
   const location = useLocation();
 
   if (!currentUser) {
@@ -30,7 +34,10 @@ export function AppRoutes({ currentUser }: AppRoutesProps) {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route
+        path="/onboarding"
+        element={<OnboardingPage onCompleted={onOnboardingCompleted} />}
+      />
       <Route path="/access-denied" element={<AccessDeniedPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

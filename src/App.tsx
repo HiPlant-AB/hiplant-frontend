@@ -109,7 +109,10 @@ function App() {
         )}
 
         {!isCurrentUserLoading && !currentUserError && (
-          <AppRoutes currentUser={currentUser} />
+          <AppRoutes
+            currentUser={currentUser}
+            onOnboardingCompleted={reloadCurrentUser}
+          />
         )}
       </section>
 

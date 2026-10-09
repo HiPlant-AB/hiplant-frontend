@@ -15,6 +15,7 @@ export function useCurrentUser(): CurrentUserState {
   const { isAuthenticated, getAccessToken } = useAuth();
 
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const useMockMe = import.meta.env.VITE_USE_MOCK_ME !== "false";
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export function useCurrentUser(): CurrentUserState {
     setError(null);
 
     try {
-      const user = isMockAuthEnabled()
+      const user = useMockMe
         ? await fetchMockCurrentUser()
         : await fetchCurrentUser(await getAccessToken());
 
