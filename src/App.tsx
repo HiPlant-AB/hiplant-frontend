@@ -5,6 +5,7 @@ import { CurrentUserPanel } from "./components/CurrentUserPanel";
 import { NavLink } from "react-router-dom";
 import { useCurrentUser } from "./api/useCurrentUser";
 import { AppRoutes } from "./components/AppRoutes";
+import { resetDevState } from "./api/devApi";
 import { BrandLogo } from "./components/BrandLogo";
 import "./App.css";
 
@@ -29,6 +30,25 @@ function App() {
     } catch (error) {
       console.error(error);
       setTokenStatus(error instanceof Error ? error.message : "Failed to acquire access token.");
+    }
+  }
+
+  async function handleResetDevState() {
+    setTokenStatus(null);
+
+    try {
+      const token = await getAccessToken();
+
+      await resetDevState(token);
+      await reloadCurrentUser();
+
+      setTokenStatus("Development state reset. Onboarding is required again.");
+    } catch (error) {
+      console.error(error);
+
+      setTokenStatus(
+        error instanceof Error ? error.message : "Failed to reset development state."
+      );
     }
   }
 
@@ -137,9 +157,15 @@ function App() {
             <dd>{account?.roles?.join(", ") || "None"}</dd>
           </dl>
 
-          <button type="button" onClick={handleAcquireToken}>
-            Acquire API token
-          </button>
+          <div className="button-row">
+            <button type="button" onClick={handleAcquireToken}>
+              Acquire API token
+            </button>
+
+            <button type="button" onClick={handleResetDevState}>
+              Reset onboarding
+            </button>
+          </div>
 
           {tokenStatus && <p className="status-message">{tokenStatus}</p>}
         </section>
